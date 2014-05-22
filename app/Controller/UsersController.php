@@ -104,56 +104,96 @@
 		}
 
 		public function get_friends_activity(){
+			
 			$uid = $this->User->id;
-			// lay danh sach thang nay follow trong thang nay
-			// tu danh sach cac thang ma thang nay follow thi lay danh sach hoat dong cua bon no show ra cho thang nay
 
 			$sql = "SELECT username, learned_date, category_name
-					FROM follows
-					INNER JOIN users ON follows.follower_id = users.id
-					INNER JOIN lessons ON follows.follower_id = lessons.user_id
-					INNER JOIN categories ON lessons.category_id = categories.id
-					WHERE follows.user_id = $uid;
-					order by DATE_FORMAT(lessons.learned_date, '%d/%m/%Y') DESC";
+				FROM follows
+				INNER JOIN users ON follows.follower_id = users.id
+				INNER JOIN lessons ON follows.follower_id = lessons.user_id
+				INNER JOIN categories ON lessons.category_id = categories.id
+				WHERE follows.user_id = $uid;
+				order by DATE_FORMAT(lessons.learned_date, '%d/%m/%Y') DESC";
+			
+
+
 			$friends_activity = $this->User->query($sql);
 			$this->set("friends_activity", $friends_activity);	
 		}
 
-		public function follow($id = null){
-			$this->request->onlyAllow('post');
+	public function follow($id = null){
+		$this->request->onlyAllow('post');
+		$uid = $this->User->id;
+		$uid = 1;
 
-        	$uid = $this->User->id;
-			//$id = $this->request->data['id'];
+		$sql = "SELECT COUNT(*) as total_id
+		FROM follows
+		WHERE user_id = $uid AND follower_id = $id";
 
-	            $sql = "SELECT COUNT(*) as total_id
-	            		FROM follows
-	            		WHERE user_id = $uid AND follower_id = $id";
+		$this->loadModel('Follow');
+		$test = $this->Follow->query($sql);
+		$this->set("test", $test);
 
+		if ($this->request->is('post')){
 
-	            $this->loadModel('Follow');
-				$test = $this->Follow->query($sql);
-				$this->set("test", $test);
+			$count = intval($test[0][0]['total_id']);
+			
+			if ($count == 0) {
+				$this->Session->setFlash(__('followed !' ));
+
+				$this->Follow->Save(
+					    array(
+					        'user_id' => $uid,
+					        'follower_id' => $id
+					    )
+					);
+
+				return $this->redirect(array('action' => 'user_list'));
+			}
+
+			if ($a == 1) {
+				$this->Session->setFlash(__('Aldeary Follow'));
+				return $this->redirect(array('action' => 'user_list'));
+			}
+			
+		}
+	}		
+
+	public function unfollow($id = null){
+		$this->request->onlyAllow('post');
+		$uid = $this->User->id;
+		$uid = 1;
+
+		$sql = "SELECT COUNT(*) as total_id
+			FROM follows
+			WHERE user_id = $uid AND follower_id = $id";
+
+			$this->loadModel('Follow');
+			$test = $this->Follow->query($sql);
+				
+			$this->set("test", $test);
 
 			if ($this->request->is('post')){
 
-
-	            if ($test['total_id'] == 0) {
-	            	$this->Session->setFlash(__('Cant'));
+				$count = intval($test[0][0]['total_id']);
+					
+				if ($count == 1) {
+					$this->Session->setFlash(__('Unfollowed !' ));
+					$this->Follow->deleteAll(array('Follow.user_id' => $uid, 'Follow.follower_id'=> $id));
 					return $this->redirect(array('action' => 'user_list'));
 				}
 
-	            if ($test['total_id'] == 1) {
-	            	$this->Session->setFlash(__('Yes'));
+				if ($count == 0) {
+					$this->Session->setFlash(__('You not follow this person'));
 					return $this->redirect(array('action' => 'user_list'));
 				}
-	        }
+			}
+	}
 
-		}
-
-		public function unfollow($id = null){
-
-		}
+	public function import_csv(){
+			
+	}
 
 		
-	}
+}
 ?>
